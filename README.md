@@ -1,32 +1,33 @@
-# Aktien-News-Finder
+# Aktien-News
 
-Ein einfacher, clientseitiger Web-Tool ohne Build-Prozess und ohne Backend: Aktie
-oder Ticker eingeben (z. B. „Apple“, „AAPL“, „SAP“) und die aktuell wichtigsten
-News dazu sehen. Alles läuft komplett im Browser; es werden keine Nutzerdaten an
-einen eigenen Server übertragen oder gespeichert.
+Aktie oder Ticker eingeben (z. B. „Tesla“, „SAP“, „NVDA“) und die wichtigsten aktuellen
+Nachrichten dazu sehen – Meldungen von Top-Medien zuerst.
+
+Live: https://vhaasis.github.io/rechner-/
 
 ## Nutzung
 
-Einfach `index.html` in einem Browser öffnen – es ist kein Build-Prozess und
-keine Installation nötig.
+`index.html` im Browser öffnen oder die GitHub-Pages-Seite aufrufen. Kein Build-Prozess,
+kein Backend. Suchen lassen sich per Link teilen, z. B. `?q=SAP&zeit=1w`.
 
 ## Funktionsweise
 
-Die Suche läuft direkt im Browser gegen die kostenlose, öffentliche
-[GDELT DOC 2.0 API](https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/) –
-ganz ohne eigenen Server und ohne API-Schlüssel.
-
-- Eingabefeld mit Autovervollständigung für gängige Ticker (US-Standardwerte + DAX)
-- Schnellauswahl-Chips für beliebte Aktien
-- Zeitraum-Filter (24 Std. bis 3 Monate)
-- Optionaler Filter „nur seriöse Wirtschaftsmedien“ (Reuters, Bloomberg, Handelsblatt, …),
-  fällt automatisch auf alle Quellen zurück, falls dort nichts gefunden wird
-- Ergebnisliste mit Titel, Quelle, Datum und Link zum Originalartikel
+- Die Suche läuft direkt im Browser gegen die kostenlose
+  [GDELT DOC 2.0 API](https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/) – ohne API-Schlüssel.
+- Pro Suche genau **eine** API-Anfrage (bis zu 100 Artikel, nach Relevanz sortiert).
+  Sortierung („Wichtigste“/„Neueste“) und Quellenfilter („Nur Top-Medien“) laufen lokal.
+- GDELT erlaubt nur eine Anfrage alle 5 Sekunden. Alle Abrufe laufen deshalb über eine
+  Warteschlange mit Mindestabstand; abgewiesene Anfragen werden einmal automatisch wiederholt.
+  Ergebnisse werden 10 Minuten im Browser zwischengespeichert.
+- Ticker-Symbole gängiger US- und DAX-Werte werden auf Firmennamen abgebildet, weil GDELT
+  Volltext durchsucht. Doppelte Meldungen (syndizierte Artikel) werden zusammengefasst.
 
 Keine Anlageberatung – reine Nachrichten-Recherche.
 
 ## Dateien
 
-- `index.html` – Struktur/Formular
-- `style.css` – Design (inkl. Dark Mode)
-- `script.js` – Ticker-Mapping, GDELT-Abfrage und Rendering
+- `index.html` – Struktur
+- `style.css` – Design (Hell/Dunkel)
+- `script.js` – Ticker-Zuordnung, GDELT-Abfrage, Rendering
+- `fonts/` – selbst gehostete Schriften (Newsreader, IBM Plex Sans/Mono; SIL Open Font License),
+  damit keine Verbindung zu Google Fonts nötig ist

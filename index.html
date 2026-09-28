@@ -2,65 +2,128 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aktien-News-Finder</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="Aktie oder Ticker eingeben und die wichtigsten aktuellen Nachrichten dazu sehen – Top-Medien zuerst.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#F3F5F8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0F16" media="(prefers-color-scheme: dark)">
+<title>Aktien-News</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230E1726'/%3E%3Crect x='7' y='16' width='4' height='9' rx='1' fill='%23F2A33A'/%3E%3Crect x='14' y='10' width='4' height='15' rx='1' fill='%23F2A33A'/%3E%3Crect x='21' y='6' width='4' height='19' rx='1' fill='%23F2A33A'/%3E%3C/svg%3E">
+<link rel="preload" href="fonts/ibm-plex-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/newsreader-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="page news-page">
 
-  <header class="site-header">
-    <h1>📈 Aktien-News-Finder</h1>
-    <p class="subtitle">Aktie oder Ticker eingeben und die wichtigsten aktuellen News dazu sehen.</p>
-  </header>
+<header class="masthead">
+  <div class="wrap masthead-inner">
+    <a class="brand" href="./" aria-label="Aktien-News – Startseite">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" class="brand-mark-bg"/>
+        <rect x="7" y="16" width="4" height="9" rx="1" class="brand-mark-bar"/>
+        <rect x="14" y="10" width="4" height="15" rx="1" class="brand-mark-bar"/>
+        <rect x="21" y="6" width="4" height="19" rx="1" class="brand-mark-bar"/>
+      </svg>
+      <span class="brand-name">Aktien-News</span>
+    </a>
+    <p class="brand-tag">Die wichtigsten Meldungen zu jeder Aktie</p>
+  </div>
+</header>
 
-  <main>
+<main class="wrap">
 
-    <section class="card search-card">
-      <form id="searchForm" class="search-row" autocomplete="off">
-        <input type="text" id="stockInput" placeholder="z. B. Apple, AAPL, SAP, Tesla …" aria-label="Aktie oder Ticker">
-        <button type="submit" class="btn-primary">Suchen</button>
-      </form>
-      <div id="suggestions" class="suggestions" hidden></div>
-
-      <div class="chip-row" id="popularChips"></div>
-
-      <div class="filter-row">
-        <label class="filter-item">
-          Zeitraum
-          <select id="timespanSelect">
-            <option value="1d">letzte 24 Std.</option>
-            <option value="3d">letzte 3 Tage</option>
-            <option value="1w">letzte Woche</option>
-            <option value="1m" selected>letzter Monat</option>
-            <option value="3m">letzte 3 Monate</option>
-          </select>
-        </label>
-        <label class="filter-item checkbox">
-          <input type="checkbox" id="trustedOnly" checked>
-          nur seriöse Wirtschaftsmedien
-        </label>
+  <section class="search-panel" aria-label="Suche">
+    <form id="searchForm" role="search" autocomplete="off" novalidate>
+      <label for="stockInput" class="visually-hidden">Aktie oder Tickersymbol</label>
+      <div class="field">
+        <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
+        <input id="stockInput" type="search" enterkeyhint="search" spellcheck="false"
+               placeholder="Aktie oder Ticker – z. B. Tesla, SAP, NVDA"
+               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggestions">
+        <kbd class="kbd-hint" aria-hidden="true">/</kbd>
+        <button type="submit" class="btn-search">Suchen</button>
       </div>
-    </section>
+      <ul id="suggestions" class="suggestions" role="listbox" aria-label="Vorschläge" hidden></ul>
+    </form>
 
-    <section class="card results-card">
-      <div class="card-header">
-        <h2 id="resultsTitle">Ergebnisse</h2>
-        <span class="badge" id="resultsCount"></span>
+    <div class="quickpicks">
+      <span class="quickpicks-label">Beliebt</span>
+      <div id="quickpicks" class="quickpicks-list"></div>
+    </div>
+  </section>
+
+  <section id="results" class="results" aria-label="Nachrichten">
+
+    <div id="intro" class="intro">
+      <h1 class="intro-title">Was bewegt deine Aktie?</h1>
+      <p class="intro-text">Gib einen Firmennamen oder ein Tickersymbol ein. Die Suche durchkämmt Nachrichtenseiten weltweit und sortiert nach Relevanz – Meldungen von Reuters, Bloomberg, Handelsblatt &amp; Co. stehen oben.</p>
+      <dl class="facts">
+        <div><dt>Quellen</dt><dd>Zehntausende Nachrichtenseiten über die GDELT-Datenbank</dd></div>
+        <div><dt>Zeitraum</dt><dd>Letzte 24 Stunden bis 3 Monate</dd></div>
+        <div><dt>Kosten</dt><dd>Kostenlos, ohne Anmeldung und ohne Tracking</dd></div>
+      </dl>
+    </div>
+
+    <div id="resultsHead" class="results-head" hidden>
+      <div class="results-title-row">
+        <span id="resultsTicker" class="ticker" hidden></span>
+        <h1 id="resultsTitle" class="results-title"></h1>
       </div>
+      <p id="resultsMeta" class="results-meta"></p>
+    </div>
 
-      <div id="statusBox" class="status-box" hidden></div>
-      <div id="newsList" class="news-list"></div>
-    </section>
+    <div id="toolbar" class="toolbar" hidden>
+      <div class="control">
+        <span class="control-label" id="lblTime">Zeitraum</span>
+        <div class="seg-scroll">
+          <div class="seg" id="segTime" role="group" aria-labelledby="lblTime">
+            <button type="button" data-value="1d">24 Std.</button>
+            <button type="button" data-value="3d">3 Tage</button>
+            <button type="button" data-value="1w">Woche</button>
+            <button type="button" data-value="1m">Monat</button>
+            <button type="button" data-value="3m">3 Monate</button>
+          </div>
+        </div>
+      </div>
+      <div class="control">
+        <span class="control-label" id="lblSort">Sortierung</span>
+        <div class="seg" id="segSort" role="group" aria-labelledby="lblSort">
+          <button type="button" data-value="relevanz">Wichtigste</button>
+          <button type="button" data-value="neu">Neueste</button>
+        </div>
+      </div>
+      <div class="control">
+        <span class="control-label" id="lblSource">Quellen</span>
+        <div class="seg" id="segSource" role="group" aria-labelledby="lblSource">
+          <button type="button" data-value="alle">Alle</button>
+          <button type="button" data-value="top">Nur Top-Medien</button>
+        </div>
+      </div>
+    </div>
 
-  </main>
+    <div id="notice" class="notice" role="status" aria-live="polite" hidden>
+      <span id="noticeText" class="notice-text"></span>
+      <button type="button" id="noticeAction" class="notice-action" hidden></button>
+    </div>
 
-  <footer class="site-footer">
-    <p>Nachrichten-Suche über die kostenlose, öffentliche <a href="https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/" target="_blank" rel="noopener">GDELT&nbsp;DOC&nbsp;2.0&nbsp;API</a>.
-    Keine Anlageberatung &ndash; alle Anfragen laufen direkt aus deinem Browser, es werden keine Suchbegriffe auf einem eigenen Server gespeichert.</p>
-  </footer>
+    <div id="skeleton" class="skeleton" hidden aria-hidden="true">
+      <div class="sk-row"><div class="sk-line sk-short"></div><div class="sk-line"></div><div class="sk-line sk-mid"></div></div>
+      <div class="sk-row"><div class="sk-line sk-short"></div><div class="sk-line"></div><div class="sk-line sk-mid"></div></div>
+      <div class="sk-row"><div class="sk-line sk-short"></div><div class="sk-line"></div><div class="sk-line sk-mid"></div></div>
+      <div class="sk-row"><div class="sk-line sk-short"></div><div class="sk-line"></div><div class="sk-line sk-mid"></div></div>
+    </div>
 
-</div>
+    <div id="lead"></div>
+    <ol id="newsList" class="news-list"></ol>
+  </section>
+
+</main>
+
+<footer class="wrap site-footer">
+  <p>Daten: <a href="https://www.gdeltproject.org/" target="_blank" rel="noopener">The GDELT Project</a>. Die Suche läuft direkt aus deinem Browser – es gibt keinen eigenen Server, der Suchbegriffe speichert.</p>
+  <p>Keine Anlageberatung. Überschriften stammen von den jeweiligen Medien.</p>
+</footer>
+
 <script src="script.js"></script>
 </body>
 </html>
