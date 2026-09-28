@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Abitur-Notenrechner</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="page">
+
+  <header class="site-header">
+    <h1>🎓 Abitur-Notenrechner</h1>
+    <p class="subtitle">Berechne deine Gesamtqualifikation und Abiturdurchschnittsnote nach dem gängigen Punktesystem (Block&nbsp;I + Block&nbsp;II).</p>
+  </header>
+
+  <main>
+
+    <!-- BLOCK I -->
+    <section class="card" id="block1">
+      <div class="card-header">
+        <h2>Block I &ndash; Kursphase (Q1&ndash;Q4)</h2>
+        <span class="badge">max. 600 Punkte</span>
+      </div>
+      <p class="hint">
+        Trage die Punktzahlen (0&ndash;15) deiner einzubringenden Kurse aus der Qualifikationsphase ein.
+        In den meisten Bundesländern werden zwischen 32 und 40 Kurse eingebracht.
+      </p>
+
+      <div class="controls-row">
+        <label for="courseCount">Anzahl einzubringender Kurse</label>
+        <input type="number" id="courseCount" min="20" max="44" value="40">
+      </div>
+
+      <div id="courseGrid" class="input-grid"></div>
+
+      <div class="block-summary">
+        <div><span class="label">Punktsumme</span><span class="value" id="courseSum">0</span></div>
+        <div><span class="label">Ø Punkte/Kurs</span><span class="value" id="courseAvg">0,00</span></div>
+        <div><span class="label">Block&nbsp;I&nbsp;Punktzahl</span><span class="value strong" id="block1Score">0</span><span class="value-max">/ 600</span></div>
+      </div>
+    </section>
+
+    <!-- BLOCK II -->
+    <section class="card" id="block2">
+      <div class="card-header">
+        <h2>Block II &ndash; Abiturprüfung</h2>
+        <span class="badge">max. 300 Punkte</span>
+      </div>
+      <p class="hint">Wähle die Anzahl deiner Prüfungsfächer und trage die erreichten Punkte (0&ndash;15) ein.</p>
+
+      <div class="controls-row">
+        <span class="label-inline">Anzahl Prüfungsfächer</span>
+        <div class="radio-group">
+          <label><input type="radio" name="examCount" value="4" checked> 4 Fächer <small>(Faktor ×5)</small></label>
+          <label><input type="radio" name="examCount" value="5"> 5 Fächer <small>(Faktor ×4)</small></label>
+        </div>
+      </div>
+
+      <div id="examGrid" class="input-grid exam-grid"></div>
+
+      <div class="block-summary">
+        <div><span class="label">Punktsumme</span><span class="value" id="examSum">0</span></div>
+        <div><span class="label">Ø Punkte/Fach</span><span class="value" id="examAvg">0,00</span></div>
+        <div><span class="label">Block&nbsp;II&nbsp;Punktzahl</span><span class="value strong" id="block2Score">0</span><span class="value-max">/ 300</span></div>
+      </div>
+    </section>
+
+    <!-- RESULT -->
+    <section class="card result-card" id="result">
+      <div class="card-header">
+        <h2>Ergebnis</h2>
+      </div>
+
+      <div class="result-grid">
+        <div class="result-tile">
+          <span class="label">Gesamtpunktzahl</span>
+          <span class="value" id="totalScore">0</span>
+          <span class="value-max">/ 900</span>
+        </div>
+        <div class="result-tile highlight">
+          <span class="label">Abiturdurchschnittsnote</span>
+          <span class="value note" id="finalGrade">&ndash;</span>
+        </div>
+      </div>
+
+      <div id="statusBox" class="status-box"></div>
+
+      <details class="rules">
+        <summary>Vereinfachte Bestehensvoraussetzungen (Anzeige, kein Ersatz für Beratung)</summary>
+        <ul id="rulesList"></ul>
+        <p class="disclaimer">
+          Die genauen Zulassungs- und Bestehensregeln (z.&nbsp;B. Anzahl erlaubter Unterkurse, Mindestanzahl an Kursen
+          auf erhöhtem Niveau, Sonderregeln für Seminararbeiten/besondere Lernleistungen) unterscheiden sich je nach
+          Bundesland. Dieser Rechner bildet ausschließlich die bundesweit einheitliche Punkte-zu-Noten-Formel der
+          Kultusministerkonferenz ab und ersetzt keine verbindliche Auskunft deiner Schule.
+        </p>
+      </details>
+    </section>
+
+    <div class="actions">
+      <button id="resetBtn" class="btn-secondary" type="button">Zurücksetzen</button>
+    </div>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>Alle Berechnungen erfolgen lokal in deinem Browser &ndash; es werden keine Daten übertragen oder gespeichert.</p>
+  </footer>
+
+</div>
+<script src="script.js"></script>
+</body>
+</html>
