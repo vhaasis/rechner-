@@ -4,8 +4,8 @@
   // Vorbereitete Schlagzeilen (Google News), alle 2 Stunden per GitHub Actions aktualisiert.
   const DATA_BASE = "https://raw.githubusercontent.com/vhaasis/rechner-/news-data/";
 
-  const STOCKS = (window.STOCKS || []).map(([ticker, name, query, aliases]) => ({
-    ticker, name, query: query || quote(name), aliases: aliases || []
+  const STOCKS = (window.STOCKS || []).map(([ticker, name, query, aliases, kind]) => ({
+    ticker, name, kind: kind || "stock", query: query || quote(name), aliases: aliases || []
   }));
 
   const QUICK_PICKS = ["TSLA", "NVDA", "AAPL", "SAP", "RHM", "MSFT", "VOW3"];

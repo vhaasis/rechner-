@@ -1,5 +1,6 @@
 // Gemeinsame Aktienliste für die Website (script.js) und den News-Abruf (scripts/fetch-news.mjs).
-// [Ticker, Anzeigename, Suchausdruck (optional, GDELT-/Google-Syntax), weitere Suchbegriffe (optional)]
+// [Ticker, Anzeigename, Suchausdruck (optional, GDELT-/Google-Syntax), weitere Suchbegriffe (optional),
+//  Art (optional): "etf" oder "crypto" – bestimmt den Zusatz bei der Google-News-Suche]
 window.STOCKS = [
   ["AAPL", "Apple"], ["MSFT", "Microsoft"], ["NVDA", "Nvidia"], ["AMZN", "Amazon"],
   ["GOOGL", "Alphabet", "(Alphabet OR Google)", ["GOOG", "Google"]],
@@ -34,5 +35,16 @@ window.STOCKS = [
   ["BEI", "Beiersdorf"], ["DB1", "Deutsche Börse"], ["CON", "Continental"],
   ["SHL", "Siemens Healthineers", null, ["Healthineers"]], ["MTX", "MTU Aero Engines", null, ["MTU"]],
   ["HEI", "Heidelberg Materials"], ["SY1", "Symrise"], ["QIA", "Qiagen"], ["VNA", "Vonovia"],
-  ["BNR", "Brenntag"], ["SRT3", "Sartorius"], ["FRE", "Fresenius"]
+  ["BNR", "Brenntag"], ["SRT3", "Sartorius"], ["FRE", "Fresenius"],
+  ["EUNL", "iShares Core MSCI World", '("MSCI World" OR "iShares Core MSCI World")',
+    ["MSCI World", "iShares MSCI World", "IE00B4L5Y983"], "etf"],
+  ["DAXESG", "iShares DAX ESG", '("DAX ESG" OR "iShares DAX" OR DAX)',
+    ["DAX ESG", "DAX", "iShares DAX", "DE000A0Q4R69"], "etf"],
+  ["FTSEAC", "Vanguard FTSE Global All-Cap", '("FTSE Global All Cap" OR "FTSE All-World" OR "Vanguard FTSE")',
+    ["FTSE All-World", "FTSE Global All Cap", "Vanguard FTSE", "Vanguard", "IE000VAHT5T0"], "etf"],
+  ["STOXX600", "Amundi Core Stoxx Europe 600", '("Stoxx Europe 600" OR "Stoxx 600")',
+    ["Stoxx Europe 600", "Stoxx 600", "Amundi Stoxx", "LU0908500753"], "etf"],
+  ["BTC", "Bitcoin", null, ["Bitcoin Kurs"], "crypto"],
+  ["ETH", "Ethereum", null, ["Ether"], "crypto"],
+  ["DOGE", "Dogecoin", null, ["Doge"], "crypto"]
 ];

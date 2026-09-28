@@ -23,9 +23,10 @@ async function loadStocks() {
   const src = await readFile(new URL("../stocks.js", import.meta.url), "utf8");
   const sandbox = { window: {} };
   runInNewContext(src, sandbox);
-  return sandbox.window.STOCKS.map(([ticker, name, query]) => ({
+  return sandbox.window.STOCKS.map(([ticker, name, query, , kind]) => ({
     ticker,
     name,
+    kind: kind || "stock",
     query: query || (/[\s\-'&.]/.test(name) ? `"${name}"` : name)
   }));
 }
@@ -74,8 +75,14 @@ async function fetchRss(url, lang) {
   return parseRss(xml, lang);
 }
 
+const SUFFIX_BY_KIND = {
+  etf: { DE: "ETF", EN: "ETF" },
+  crypto: { DE: "Kurs", EN: "price" }
+};
+
 async function fetchEdition(stock, ed) {
-  const q = `${stock.query} ${ed.suffix} when:30d`;
+  const suffix = SUFFIX_BY_KIND[stock.kind]?.[ed.lang] ?? ed.suffix;
+  const q = `${stock.query} ${suffix} when:30d`;
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=${ed.hl}&gl=${ed.gl}&ceid=${ed.ceid}`;
   return (await fetchRss(url, ed.lang)).slice(0, PER_EDITION);
 }
