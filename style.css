@@ -49,6 +49,15 @@ body {
 .site-header h1 { margin: 0 0 8px; font-size: 1.9rem; }
 .subtitle { color: var(--text-muted); max-width: 560px; margin: 0 auto; font-size: 0.98rem; }
 
+.tool-nav { margin-top: 10px; }
+.tool-nav a {
+  color: var(--primary);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.tool-nav a:hover { text-decoration: underline; }
+
 .card {
   background: var(--card-bg);
   border: 1px solid var(--border);
