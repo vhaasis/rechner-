@@ -16,7 +16,7 @@ kein Backend. Suchen lassen sich per Link teilen, z. B. `?q=SAP&zeit=1w`.
 - **NEWS Heute**: Der Workflow `.github/workflows/update-news.yml` holt stündlich die
   Google-News-Rubrik „Wirtschaft“ (deutsch + englisch) als `heute.json`. Die Startseite zeigt die
   Meldungen der letzten 24 Stunden (bei wenigen Meldungen 48 Stunden).
-- **Gelistete Aktien** (rund 75 US- und DAX-Werte in `stocks.js`): Derselbe Workflow holt die
+- **Gelistete Aktien** (rund 80 US- und DAX-Werte in `stocks.js`): Derselbe Workflow holt die
   Google-News-Schlagzeilen
   (deutsch + englisch, letzte 30 Tage) mit `scripts/fetch-news.mjs` und legt sie als
   `<TICKER>.json` auf den Branch `news-data`. Die Seite lädt diese Datei über
