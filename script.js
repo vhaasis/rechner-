@@ -1,39 +1,12 @@
 (function () {
   "use strict";
 
-  // [Ticker, Anzeigename, GDELT-Suchausdruck (optional), weitere Suchbegriffe (optional)]
-  const STOCKS = [
-    ["AAPL", "Apple"], ["MSFT", "Microsoft"], ["NVDA", "Nvidia"], ["AMZN", "Amazon"],
-    ["GOOGL", "Alphabet", "(Alphabet OR Google)", ["GOOG", "Google"]],
-    ["META", "Meta Platforms", '("Meta Platforms" OR Facebook)', ["Meta", "Facebook"]],
-    ["TSLA", "Tesla"], ["NFLX", "Netflix"],
-    ["AMD", "AMD", '(AMD OR "Advanced Micro Devices")', ["Advanced Micro Devices"]],
-    ["INTC", "Intel"], ["AVGO", "Broadcom"], ["PLTR", "Palantir"], ["ORCL", "Oracle"],
-    ["CRM", "Salesforce"], ["ADBE", "Adobe"], ["QCOM", "Qualcomm"], ["IBM", "IBM"],
-    ["ASML", "ASML"], ["BA", "Boeing"], ["DIS", "Disney"], ["KO", "Coca-Cola"],
-    ["PEP", "PepsiCo"], ["MCD", "McDonald's", '("McDonald\'s" OR McDonalds)', ["McDonalds"]], ["NKE", "Nike"], ["SBUX", "Starbucks"],
-    ["WMT", "Walmart"], ["JPM", "JPMorgan", '(JPMorgan OR "JP Morgan")', ["JP Morgan"]],
-    ["V", "Visa"], ["MA", "Mastercard"], ["PYPL", "PayPal"], ["UBER", "Uber"],
-    ["BABA", "Alibaba"],
-    ["BRK.B", "Berkshire Hathaway", null, ["BRK", "Berkshire"]],
-    ["LLY", "Eli Lilly"], ["NVO", "Novo Nordisk"], ["PFE", "Pfizer"],
-    ["JNJ", "Johnson & Johnson"], ["XOM", "ExxonMobil", '(ExxonMobil OR "Exxon Mobil")', ["Exxon"]],
-    ["CVX", "Chevron"],
-    ["SAP", "SAP"], ["SIE", "Siemens"], ["ENR", "Siemens Energy"], ["ALV", "Allianz"],
-    ["DTE", "Deutsche Telekom", null, ["Telekom"]], ["DBK", "Deutsche Bank"],
-    ["CBK", "Commerzbank"], ["MUV2", "Munich Re", '("Munich Re" OR "Münchener Rück")', ["Münchener Rück"]],
-    ["BAS", "BASF"], ["BAYN", "Bayer"], ["ADS", "Adidas"], ["BMW", "BMW"],
-    ["MBG", "Mercedes-Benz", null, ["Mercedes"]], ["VOW3", "Volkswagen", null, ["VW", "VOW"]],
-    ["P911", "Porsche"], ["RHM", "Rheinmetall"], ["IFX", "Infineon"], ["AIR", "Airbus"],
-    ["DHL", "DHL Group", '("DHL Group" OR "Deutsche Post")', ["Deutsche Post", "DHL"]],
-    ["RWE", "RWE"], ["EOAN", "E.ON", "Eon", ["Eon"]],
-    ["HNR1", "Hannover Rück", '("Hannover Re" OR "Hannover Rück")', ["Hannover Re"]],
-    ["ZAL", "Zalando"], ["LIN", "Linde"], ["MRK", "Merck"], ["HEN3", "Henkel"],
-    ["BEI", "Beiersdorf"], ["DB1", "Deutsche Börse"], ["CON", "Continental"],
-    ["SHL", "Siemens Healthineers", null, ["Healthineers"]], ["MTX", "MTU Aero Engines", null, ["MTU"]],
-    ["HEI", "Heidelberg Materials"], ["SY1", "Symrise"], ["QIA", "Qiagen"], ["VNA", "Vonovia"],
-    ["BNR", "Brenntag"], ["SRT3", "Sartorius"], ["FRE", "Fresenius"]
-  ].map(([ticker, name, query, aliases]) => ({ ticker, name, query: query || quote(name), aliases: aliases || [] }));
+  // Vorbereitete Schlagzeilen (Google News), alle 2 Stunden per GitHub Actions aktualisiert.
+  const DATA_BASE = "https://raw.githubusercontent.com/vhaasis/rechner-/news-data/";
+
+  const STOCKS = (window.STOCKS || []).map(([ticker, name, query, aliases]) => ({
+    ticker, name, query: query || quote(name), aliases: aliases || []
+  }));
 
   const QUICK_PICKS = ["TSLA", "NVDA", "AAPL", "SAP", "RHM", "MSFT", "VOW3"];
 
@@ -41,15 +14,18 @@
     "reuters.com", "bloomberg.com", "cnbc.com", "marketwatch.com", "wsj.com", "ft.com",
     "finance.yahoo.com", "barrons.com", "forbes.com", "businessinsider.com", "economist.com",
     "nytimes.com", "apnews.com", "bbc.com", "bbc.co.uk", "theguardian.com", "cnn.com",
-    "fool.com", "investing.com", "seekingalpha.com",
+    "fool.com", "investing.com", "seekingalpha.com", "morningstar.com",
     "handelsblatt.com", "faz.net", "sueddeutsche.de", "spiegel.de", "zeit.de", "welt.de",
     "tagesschau.de", "boerse-online.de", "finanzen.net", "manager-magazin.de", "wiwo.de",
-    "n-tv.de", "deraktionaer.de", "onvista.de", "boerse.de", "capital.de", "nzz.ch", "derstandard.at"
+    "n-tv.de", "deraktionaer.de", "onvista.de", "boerse.de", "capital.de", "boersen-zeitung.de",
+    "tagesspiegel.de", "nzz.ch", "derstandard.at"
   ];
 
-  const TIMESPAN_LABELS = {
-    "1d": "letzte 24 Stunden", "3d": "letzte 3 Tage", "1w": "letzte Woche",
-    "1m": "letzter Monat", "3m": "letzte 3 Monate"
+  const TIMESPANS = {
+    "1d": { days: 1, label: "letzte 24 Stunden" },
+    "3d": { days: 3, label: "letzte 3 Tage" },
+    "1w": { days: 7, label: "letzte Woche" },
+    "1m": { days: 31, label: "letzter Monat" }
   };
 
   const LANG_CODES = {
@@ -86,10 +62,12 @@
 
   const state = {
     target: null,
-    timespan: "1m",
+    timespan: "1w",
     sort: "relevanz",
     source: "alle",
-    articles: [],
+    mode: null,        // "feed" (vorbereitete Daten) oder "live" (GDELT)
+    pool: [],
+    updated: null,
     loaded: false,
     token: 0
   };
@@ -105,9 +83,8 @@
   function safeStorage(kind) {
     try {
       const s = window[kind];
-      const probe = "__probe__";
-      s.setItem(probe, probe);
-      s.removeItem(probe);
+      s.setItem("__probe__", "1");
+      s.removeItem("__probe__");
       return s;
     } catch (e) {
       return null;
@@ -116,6 +93,8 @@
 
   const local = safeStorage("localStorage");
   const session = safeStorage("sessionStorage");
+
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   // ---------- Suchbegriff auflösen ----------
 
@@ -133,17 +112,79 @@
     ) || null;
   }
 
+  function stockTarget(stock) {
+    return { key: stock.ticker, label: stock.name, ticker: stock.ticker, query: stock.query, input: stock.name };
+  }
+
   function resolveTarget(raw) {
     const stock = findStock(raw);
-    if (stock) {
-      return { key: stock.ticker, label: stock.name, ticker: stock.ticker, query: stock.query, input: stock.name };
-    }
+    if (stock) return stockTarget(stock);
     const cleaned = raw.replace(/["():]/g, " ").replace(/\s+/g, " ").trim().replace(/^-+/, "");
     if (cleaned.length < 2) return null;
     return { key: cleaned.toLowerCase(), label: cleaned, ticker: null, query: quote(cleaned), input: cleaned };
   }
 
-  // ---------- GDELT-Zugriff: Warteschlange, Cache, Fehler ----------
+  // ---------- Cache ----------
+
+  const memoryCache = new Map();
+
+  function readCache(key) {
+    let entry = memoryCache.get(key);
+    if (!entry && session) {
+      try { entry = JSON.parse(session.getItem(key) || "null"); } catch (e) { entry = null; }
+    }
+    return entry && Date.now() - entry.ts < CACHE_TTL_MS ? entry.value : null;
+  }
+
+  function writeCache(key, value) {
+    const entry = { ts: Date.now(), value };
+    memoryCache.set(key, entry);
+    if (session) {
+      try { session.setItem(key, JSON.stringify(entry)); } catch (e) { /* Speicher voll oder gesperrt */ }
+    }
+  }
+
+  // ---------- Vorbereitete Daten ----------
+
+  async function loadFeed(ticker) {
+    const key = "feed:" + ticker;
+    const cached = readCache(key);
+    if (cached) return cached;
+    let res;
+    try {
+      res = await fetch(DATA_BASE + encodeURIComponent(ticker) + ".json");
+    } catch (e) {
+      return null;
+    }
+    if (!res.ok) return null;
+    let data;
+    try { data = await res.json(); } catch (e) { return null; }
+    if (!data || !Array.isArray(data.items)) return null;
+    writeCache(key, data);
+    return data;
+  }
+
+  function hostOf(url) {
+    try { return new URL(url).hostname.replace(/^www\./, ""); } catch (e) { return ""; }
+  }
+
+  function prepareFeed(items) {
+    return dedupe(items.map((it, i) => {
+      const host = hostOf(it.sourceUrl);
+      return {
+        rank: i,
+        title: cleanTitle(it.title),
+        url: it.url,
+        source: it.source || host,
+        date: parseDate(it.date),
+        lang: it.lang || "",
+        image: "",
+        top: isTopMedium(host)
+      };
+    }));
+  }
+
+  // ---------- GDELT (Live-Fallback) ----------
 
   class ApiError extends Error {
     constructor(kind, message) {
@@ -166,11 +207,9 @@
     }
   }
 
-  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
   let queue = Promise.resolve();
 
-  // GDELT erlaubt nur ~1 Anfrage alle 5 Sekunden; alle Abrufe laufen seriell mit Mindestabstand.
+  // GDELT erlaubt nur ~1 Anfrage alle 5 Sekunden pro IP; Abrufe laufen seriell mit Mindestabstand.
   function queuedFetch(url, isStale, onWait) {
     const run = async () => {
       if (isStale()) return null;
@@ -188,7 +227,7 @@
     return result;
   }
 
-  function buildUrl(query, timespan) {
+  function gdeltUrl(query, timespan) {
     const params = new URLSearchParams({
       query: query,
       mode: "artlist",
@@ -198,50 +237,6 @@
       timespan: timespan
     });
     return "https://api.gdeltproject.org/api/v2/doc/doc?" + params.toString();
-  }
-
-  function cacheKey(target, timespan) {
-    return "news:" + target.key + ":" + timespan;
-  }
-
-  const memoryCache = new Map();
-
-  function readCache(key) {
-    let entry = memoryCache.get(key);
-    if (!entry && session) {
-      try { entry = JSON.parse(session.getItem(key) || "null"); } catch (e) { entry = null; }
-    }
-    if (entry && Date.now() - entry.ts < CACHE_TTL_MS) return entry.articles;
-    return null;
-  }
-
-  function writeCache(key, articles) {
-    const entry = { ts: Date.now(), articles };
-    memoryCache.set(key, entry);
-    if (session) {
-      try { session.setItem(key, JSON.stringify(entry)); } catch (e) { /* Speicher voll oder gesperrt */ }
-    }
-  }
-
-  async function fetchArticles(target, timespan, isStale, onWait) {
-    let res;
-    try {
-      res = await queuedFetch(buildUrl(target.query, timespan), isStale, onWait);
-    } catch (e) {
-      if (navigator.onLine === false) throw new ApiError("offline", "Keine Internetverbindung.");
-      // Abgewiesene Anfragen (v. a. Rate-Limit) kommen ohne CORS-Header an und schlagen hier als Netzwerkfehler auf.
-      throw new ApiError("blocked", e.message);
-    }
-    if (res === null) return null;
-    if (res.status === 429) throw new ApiError("rate", "HTTP 429");
-    if (!res.ok) throw new ApiError("http", "HTTP " + res.status);
-
-    const text = (await res.text()).trim();
-    if (!text) return [];
-    if (/limit requests/i.test(text)) throw new ApiError("rate", text);
-    const data = parseJsonLenient(text);
-    if (!data) throw new ApiError("gdelt", text.slice(0, 200));
-    return Array.isArray(data.articles) ? data.articles : [];
   }
 
   // GDELT liefert gelegentlich ungültige Backslash-Escapes in Titeln.
@@ -258,7 +253,26 @@
     }
   }
 
-  // ---------- Artikel aufbereiten ----------
+  async function fetchGdelt(target, timespan, isStale, onWait) {
+    let res;
+    try {
+      res = await queuedFetch(gdeltUrl(target.query, timespan), isStale, onWait);
+    } catch (e) {
+      if (navigator.onLine === false) throw new ApiError("offline", "offline");
+      // Abgewiesene Anfragen (Rate-Limit) kommen ohne CORS-Header an und schlagen als Netzwerkfehler auf.
+      throw new ApiError("blocked", e.message);
+    }
+    if (res === null) return null;
+    if (res.status === 429) throw new ApiError("rate", "HTTP 429");
+    if (!res.ok) throw new ApiError("http", "HTTP " + res.status);
+
+    const text = (await res.text()).trim();
+    if (!text) return [];
+    if (/limit requests/i.test(text)) throw new ApiError("rate", text);
+    const data = parseJsonLenient(text);
+    if (!data) throw new ApiError("gdelt", text.slice(0, 200));
+    return Array.isArray(data.articles) ? data.articles : [];
+  }
 
   function parseSeenDate(seendate) {
     const m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(seendate || "");
@@ -267,44 +281,57 @@
     return isNaN(d.getTime()) ? null : d;
   }
 
-  function cleanTitle(title) {
-    return (title || "")
-      .replace(/\s+/g, " ")
-      .replace(/\s+([,.;:!?%])/g, "$1")
-      .trim();
-  }
-
-  function isTopMedium(domain) {
-    const d = (domain || "").toLowerCase().replace(/^www\./, "");
-    return TOP_MEDIA.some((t) => d === t || d.endsWith("." + t));
-  }
-
-  function prepareArticles(raw) {
-    const seen = new Set();
-    const out = [];
-    raw.forEach((a, index) => {
-      const title = cleanTitle(a.title);
-      if (!title || !/^https?:\/\//.test(a.url || "")) return;
-      const fingerprint = title.toLowerCase().replace(/[^a-z0-9äöüß]+/g, "").slice(0, 90);
-      if (seen.has(fingerprint)) return;
-      seen.add(fingerprint);
+  function prepareGdelt(raw) {
+    return dedupe(raw.map((a, i) => {
+      const host = (a.domain || "").replace(/^www\./, "");
       const langName = (a.language || "").toLowerCase();
-      out.push({
-        rank: index,
-        title,
+      return {
+        rank: i,
+        title: cleanTitle(a.title),
         url: a.url,
-        domain: (a.domain || "").replace(/^www\./, ""),
+        source: host,
         date: parseSeenDate(a.seendate),
         lang: LANG_CODES[langName] || (langName ? langName.slice(0, 2).toUpperCase() : ""),
         image: /^https:\/\//.test(a.socialimage || "") ? a.socialimage : "",
-        top: isTopMedium(a.domain)
-      });
+        top: isTopMedium(host)
+      };
+    }));
+  }
+
+  // ---------- Aufbereitung ----------
+
+  function parseDate(value) {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function cleanTitle(title) {
+    return (title || "").replace(/\s+/g, " ").replace(/\s+([,.;:!?%])/g, "$1").trim();
+  }
+
+  function isTopMedium(host) {
+    const h = (host || "").toLowerCase();
+    return TOP_MEDIA.some((t) => h === t || h.endsWith("." + t));
+  }
+
+  function dedupe(list) {
+    const seen = new Set();
+    return list.filter((a) => {
+      if (!a.title || !/^https?:\/\//.test(a.url || "")) return false;
+      const fingerprint = a.title.toLowerCase().replace(/[^a-z0-9äöüß]+/g, "").slice(0, 90);
+      if (seen.has(fingerprint)) return false;
+      seen.add(fingerprint);
+      return true;
     });
-    return out;
+  }
+
+  function inTimespan(list) {
+    const cutoff = Date.now() - TIMESPANS[state.timespan].days * 86400000;
+    return list.filter((a) => !a.date || a.date.getTime() >= cutoff);
   }
 
   function visibleArticles() {
-    let list = state.articles.slice();
+    let list = inTimespan(state.pool);
     if (state.source === "top") list = list.filter((a) => a.top);
     if (state.sort === "neu") {
       list.sort((a, b) => (b.date ? b.date.getTime() : 0) - (a.date ? a.date.getTime() : 0));
@@ -335,7 +362,7 @@
 
   function buildMeta(a) {
     const meta = el("div", "meta");
-    meta.appendChild(el("span", "meta-source", a.domain || "unbekannte Quelle"));
+    meta.appendChild(el("span", "meta-source", a.source || "unbekannte Quelle"));
     if (a.date) {
       meta.appendChild(el("span", "meta-sep", "·"));
       const time = el("time", "", relativeTime(a.date));
@@ -363,13 +390,17 @@
     return img;
   }
 
-  function renderLead(a) {
-    const article = el("article", "lead");
-    const link = el("a", "lead-link");
+  function newsLink(className, a) {
+    const link = el("a", className);
     link.href = a.url;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
+    return link;
+  }
 
+  function renderLead(a) {
+    const article = el("article", "lead");
+    const link = newsLink("lead-link", a);
     if (a.image) {
       const media = el("div", "lead-media");
       media.appendChild(buildImage(a.image, "", () => {
@@ -380,7 +411,6 @@
     } else {
       link.classList.add("no-media");
     }
-
     const body = el("div", "lead-body");
     body.appendChild(el("span", "eyebrow", state.sort === "neu" ? "Neueste Meldung" : "Top-Meldung"));
     body.appendChild(el("h2", "lead-title", a.title));
@@ -392,16 +422,11 @@
 
   function renderStory(a) {
     const li = el("li", "story");
-    const link = el("a", "story-link");
-    link.href = a.url;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-
+    const link = newsLink("story-link", a);
     const text = el("div", "story-text");
     text.appendChild(buildMeta(a));
     text.appendChild(el("h3", "story-title", a.title));
     link.appendChild(text);
-
     if (a.image) link.appendChild(buildImage(a.image, "story-thumb", (e) => e.target.remove()));
     li.appendChild(link);
     return li;
@@ -413,8 +438,14 @@
     const list = visibleArticles();
     renderMeta(list);
 
-    if (state.articles.length === 0) {
-      showNotice("Keine Meldungen gefunden. Wähle einen längeren Zeitraum oder prüfe die Schreibweise.", "warn");
+    if (inTimespan(state.pool).length === 0) {
+      const wider = state.timespan !== "1m";
+      showNotice(
+        "Keine Meldungen im gewählten Zeitraum." + (wider ? "" : " Prüfe die Schreibweise oder versuche einen anderen Namen."),
+        "warn",
+        wider ? "Letzten Monat zeigen" : null,
+        wider ? () => setTimespan("1m") : null
+      );
       return;
     }
     if (list.length === 0) {
@@ -430,19 +461,16 @@
   }
 
   function renderMeta(list) {
-    const shown = list || visibleArticles();
-    if (shown.length === 0) {
-      resultsMeta.textContent = "Keine Meldungen · " + TIMESPAN_LABELS[state.timespan];
-      return;
+    const parts = [];
+    if (list.length === 0) {
+      parts.push("Keine Meldungen");
+    } else {
+      const sources = new Set(list.map((a) => a.source)).size;
+      parts.push(list.length + (list.length === 1 ? " Meldung" : " Meldungen"));
+      parts.push(sources + (sources === 1 ? " Quelle" : " Quellen"));
     }
-    const sources = new Set(shown.map((a) => a.domain)).size;
-    const topCount = state.articles.filter((a) => a.top).length;
-    const parts = [
-      shown.length + (shown.length === 1 ? " Meldung" : " Meldungen"),
-      sources + (sources === 1 ? " Quelle" : " Quellen")
-    ];
-    if (state.source === "alle" && topCount > 0) parts.push(topCount + " von Top-Medien");
-    parts.push(TIMESPAN_LABELS[state.timespan]);
+    parts.push(TIMESPANS[state.timespan].label);
+    if (state.mode === "feed" && state.updated) parts.push("aktualisiert " + relativeTime(state.updated));
     resultsMeta.textContent = parts.join(" · ");
   }
 
@@ -460,14 +488,9 @@
     notice.hidden = false;
     notice.className = "notice" + (kind === "error" ? " is-error" : kind === "warn" ? " is-warn" : "");
     noticeText.textContent = message;
-    if (actionLabel) {
-      noticeAction.hidden = false;
-      noticeAction.textContent = actionLabel;
-      noticeAction.onclick = onAction;
-    } else {
-      noticeAction.hidden = true;
-      noticeAction.onclick = null;
-    }
+    noticeAction.hidden = !actionLabel;
+    noticeAction.textContent = actionLabel || "";
+    noticeAction.onclick = onAction || null;
   }
 
   function hideNotice() {
@@ -495,7 +518,7 @@
     if (!state.target) return;
     const params = new URLSearchParams();
     params.set("q", state.target.ticker || state.target.input);
-    if (state.timespan !== "1m") params.set("zeit", state.timespan);
+    if (state.timespan !== "1w") params.set("zeit", state.timespan);
     if (state.sort !== "relevanz") params.set("sort", state.sort);
     if (state.source !== "alle") params.set("quellen", state.source);
     try {
@@ -503,79 +526,96 @@
     } catch (e) { /* z. B. file:// */ }
   }
 
-  function errorMessage(err) {
+  function errorMessage(err, target) {
     switch (err.kind) {
       case "offline":
         return "Keine Internetverbindung. Prüfe deine Verbindung und versuche es erneut.";
       case "rate":
       case "blocked":
-        return "Die News-API nimmt gerade keine Anfragen an – meist, weil kurz zuvor schon gesucht wurde. Warte ein paar Sekunden und versuche es erneut.";
+        return (target.ticker ? "" : "Firmen außerhalb der Vorschlagsliste werden live über GDELT gesucht. ") +
+          "GDELT nimmt von deiner Verbindung gerade keine Anfragen an – das passiert oft in Uni- oder Firmennetzen und mit iCloud Private Relay. " +
+          "Wähle eine Aktie aus der Vorschlagsliste oder versuche es später erneut.";
       case "gdelt":
         return /short|long/i.test(err.message)
           ? "Der Suchbegriff ist zu kurz oder zu lang. Gib den vollständigen Firmennamen ein, z. B. „Rheinmetall“."
-          : "Die News-API meldet: „" + err.message + "“";
+          : "Die News-Quelle meldet: „" + err.message + "“";
       default:
-        return "Die News-API antwortet gerade mit einem Fehler (" + err.message + "). Bitte später erneut versuchen.";
+        return "Die News-Quelle antwortet gerade mit einem Fehler (" + err.message + "). Bitte später erneut versuchen.";
     }
   }
 
   // ---------- Suche ----------
 
+  function applyPool(mode, pool, updated) {
+    setLoading(false);
+    state.mode = mode;
+    state.pool = pool;
+    state.updated = updated || null;
+    state.loaded = true;
+    renderResults();
+  }
+
   async function search(target) {
     const token = ++state.token;
     const isStale = () => token !== state.token;
     state.target = target;
+    state.loaded = false;
     input.value = target.input;
     input.blur();
     closeSuggestions();
     showHeader(target);
     syncSegments();
     syncUrl();
-
-    state.loaded = false;
-    const key = cacheKey(target, state.timespan);
-    const cached = readCache(key);
-    if (cached) {
-      setLoading(false);
-      state.articles = prepareArticles(cached);
-      state.loaded = true;
-      renderResults();
-      return;
-    }
-
+    hideNotice();
     resultsMeta.textContent = "Suche läuft …";
     setLoading(true);
-    hideNotice();
+
+    if (target.ticker) {
+      const feed = await loadFeed(target.ticker);
+      if (isStale()) return;
+      if (feed) {
+        applyPool("feed", prepareFeed(feed.items), parseDate(feed.updated));
+        return;
+      }
+    }
+    await searchLive(target, token, isStale);
+  }
+
+  async function searchLive(target, token, isStale) {
+    const key = "gdelt:" + target.key + ":" + state.timespan;
+    const cached = readCache(key);
+    if (cached) {
+      applyPool("live", prepareGdelt(cached));
+      return;
+    }
     const onWait = (ms) => {
-      if (!isStale()) showNotice("Einen Moment – die News-API erlaubt nur eine Anfrage alle 5 Sekunden (noch " + Math.ceil(ms / 1000) + " s).", "info");
+      if (!isStale()) showNotice("Einen Moment – die Live-Suche erlaubt nur eine Anfrage alle 5 Sekunden (noch " + Math.ceil(ms / 1000) + " s).", "info");
     };
 
     let raw;
     try {
       try {
-        raw = await fetchArticles(target, state.timespan, isStale, onWait);
+        raw = await fetchGdelt(target, state.timespan, isStale, onWait);
       } catch (err) {
         if (err.kind !== "rate" && err.kind !== "blocked") throw err;
         if (isStale()) return;
-        showNotice("Die News-API bremst gerade. Neuer Versuch in wenigen Sekunden …", "info");
+        showNotice("Die Live-Suche bremst gerade. Neuer Versuch in wenigen Sekunden …", "info");
         await sleep(RETRY_EXTRA_DELAY_MS);
-        raw = await fetchArticles(target, state.timespan, isStale, onWait);
+        raw = await fetchGdelt(target, state.timespan, isStale, onWait);
       }
     } catch (err) {
       if (isStale()) return;
       setLoading(false);
-      state.articles = [];
-      resultsMeta.textContent = TIMESPAN_LABELS[state.timespan];
-      showNotice(errorMessage(err), "error", "Erneut versuchen", () => search(target));
+      state.mode = "live";
+      state.pool = [];
+      resultsMeta.textContent = TIMESPANS[state.timespan].label;
+      showNotice(errorMessage(err, target), "error", "Erneut versuchen", () => search(target));
       return;
     }
 
     if (raw === null || isStale()) return;
     writeCache(key, raw);
-    setLoading(false);
-    state.articles = prepareArticles(raw);
-    state.loaded = true;
-    renderResults();
+    applyPool("live", prepareGdelt(raw));
   }
 
   function searchFromInput(raw) {
@@ -593,6 +633,17 @@
     syncSegments();
     syncUrl();
     if (state.loaded) renderResults();
+  }
+
+  function setTimespan(value) {
+    if (value === state.timespan) return;
+    state.timespan = value;
+    syncSegments();
+    syncUrl();
+    if (!state.target) return;
+    // Vorbereitete Daten decken 30 Tage ab und werden nur lokal gefiltert; die Live-Suche fragt neu an.
+    if (state.mode === "feed" && state.loaded) renderResults();
+    else search(state.target);
   }
 
   // ---------- Vorschläge ----------
@@ -634,7 +685,7 @@
       li.appendChild(el("span", "suggestion-name", s.name));
       li.addEventListener("mousedown", (e) => {
         e.preventDefault();
-        pickStock(s);
+        search(stockTarget(s));
       });
       suggestionsEl.appendChild(li);
     });
@@ -658,10 +709,6 @@
     input.setAttribute("aria-activedescendant", "sugg-" + activeSuggestion);
   }
 
-  function pickStock(stock) {
-    search({ key: stock.ticker, label: stock.name, ticker: stock.ticker, query: stock.query, input: stock.name });
-  }
-
   // ---------- Initialisierung ----------
 
   function buildQuickPicks() {
@@ -674,7 +721,7 @@
       btn.setAttribute("aria-pressed", "false");
       btn.appendChild(el("span", "pick-ticker", stock.ticker));
       btn.appendChild(el("span", "", stock.name));
-      btn.addEventListener("click", () => pickStock(stock));
+      btn.addEventListener("click", () => search(stockTarget(stock)));
       quickpicksEl.appendChild(btn);
     });
   }
@@ -689,7 +736,7 @@
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     if (activeSuggestion >= 0 && currentMatches[activeSuggestion]) {
-      pickStock(currentMatches[activeSuggestion]);
+      search(stockTarget(currentMatches[activeSuggestion]));
       return;
     }
     searchFromInput(input.value);
@@ -713,26 +760,19 @@
     input.select();
   });
 
-  bindSegment(segTime, (value) => {
-    if (value === state.timespan) return;
-    state.timespan = value;
-    if (state.target) search(state.target);
-    else syncSegments();
-  });
-
+  bindSegment(segTime, setTimespan);
   bindSegment(segSort, (value) => {
     state.sort = value;
     syncSegments();
     syncUrl();
     if (state.loaded) renderResults();
   });
-
   bindSegment(segSource, setSource);
 
   buildQuickPicks();
 
   const params = new URLSearchParams(location.search);
-  if (TIMESPAN_LABELS[params.get("zeit")]) state.timespan = params.get("zeit");
+  if (TIMESPANS[params.get("zeit")]) state.timespan = params.get("zeit");
   if (params.get("sort") === "neu") state.sort = "neu";
   if (params.get("quellen") === "top") state.source = "top";
   syncSegments();

@@ -12,15 +12,21 @@ kein Backend. Suchen lassen sich per Link teilen, z. B. `?q=SAP&zeit=1w`.
 
 ## Funktionsweise
 
-- Die Suche läuft direkt im Browser gegen die kostenlose
-  [GDELT DOC 2.0 API](https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/) – ohne API-Schlüssel.
-- Pro Suche genau **eine** API-Anfrage (bis zu 100 Artikel, nach Relevanz sortiert).
-  Sortierung („Wichtigste“/„Neueste“) und Quellenfilter („Nur Top-Medien“) laufen lokal.
-- GDELT erlaubt nur eine Anfrage alle 5 Sekunden. Alle Abrufe laufen deshalb über eine
-  Warteschlange mit Mindestabstand; abgewiesene Anfragen werden einmal automatisch wiederholt.
-  Ergebnisse werden 10 Minuten im Browser zwischengespeichert.
-- Ticker-Symbole gängiger US- und DAX-Werte werden auf Firmennamen abgebildet, weil GDELT
-  Volltext durchsucht. Doppelte Meldungen (syndizierte Artikel) werden zusammengefasst.
+- **Gelistete Aktien** (rund 75 US- und DAX-Werte in `stocks.js`): Der Workflow
+  `.github/workflows/update-news.yml` holt alle 2 Stunden die Google-News-Schlagzeilen
+  (deutsch + englisch, letzte 30 Tage) mit `scripts/fetch-news.mjs` und legt sie als
+  `<TICKER>.json` auf den Branch `news-data`. Die Seite lädt diese Datei über
+  raw.githubusercontent.com – ohne Rate-Limit und ohne API-Schlüssel.
+  Zeitraum, Sortierung und Quellenfilter laufen danach lokal im Browser.
+- **Andere Firmen**: Live-Suche über die
+  [GDELT DOC 2.0 API](https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/). GDELT erlaubt
+  nur eine Anfrage alle 5 Sekunden pro IP; die Seite hält diesen Abstand ein und wiederholt
+  abgewiesene Anfragen einmal. In geteilten Netzen (Uni-WLAN, iCloud Private Relay) kann GDELT
+  trotzdem blockieren.
+- Doppelte Meldungen (syndizierte Artikel) werden zusammengefasst, Ergebnisse 10 Minuten im
+  Browser zwischengespeichert.
+- Der Zeitplan (`schedule`) läuft bei GitHub nur für Workflows auf dem Standard-Branch (`main`).
+  Neue Aktien: Eintrag in `stocks.js` ergänzen.
 
 Keine Anlageberatung – reine Nachrichten-Recherche.
 
@@ -28,6 +34,8 @@ Keine Anlageberatung – reine Nachrichten-Recherche.
 
 - `index.html` – Struktur
 - `style.css` – Design (Hell/Dunkel)
-- `script.js` – Ticker-Zuordnung, GDELT-Abfrage, Rendering
+- `stocks.js` – Aktienliste (Ticker, Name, Suchbegriffe), genutzt von Website und Workflow
+- `script.js` – Datenabruf, Filter, Rendering
+- `scripts/fetch-news.mjs` – News-Abruf für den Workflow
 - `fonts/` – selbst gehostete Schriften (Newsreader, IBM Plex Sans/Mono; SIL Open Font License),
   damit keine Verbindung zu Google Fonts nötig ist
