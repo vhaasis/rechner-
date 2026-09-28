@@ -116,9 +116,28 @@
     return "https://api.gdeltproject.org/api/v2/doc/doc?" + params.toString();
   }
 
+  // GDELT erlaubt nur ~1 Anfrage alle 5 Sekunden pro Client; alle Aufrufe
+  // laufen daher über diese Warteschlange, die den Mindestabstand einhält.
+  const GDELT_MIN_INTERVAL_MS = 5500;
+  let gdeltLastFetchAt = 0;
+  let gdeltQueue = Promise.resolve();
+
+  function queuedFetch(url) {
+    const run = () => {
+      const wait = Math.max(0, GDELT_MIN_INTERVAL_MS - (Date.now() - gdeltLastFetchAt));
+      return new Promise((resolve) => setTimeout(resolve, wait)).then(() => {
+        gdeltLastFetchAt = Date.now();
+        return fetch(url);
+      });
+    };
+    const result = gdeltQueue.then(run, run);
+    gdeltQueue = result.catch(() => {});
+    return result;
+  }
+
   async function fetchArticles(term, options) {
     const url = buildGdeltUrl(term, options);
-    const res = await fetch(url);
+    const res = await queuedFetch(url);
     if (!res.ok) throw new Error("HTTP " + res.status);
     const text = await res.text();
     if (!text.trim()) return [];
@@ -126,7 +145,7 @@
     try {
       data = JSON.parse(text);
     } catch (e) {
-      throw new Error("Unerwartete Antwort der News-API");
+      throw new Error("Die News-API ist gerade überlastet (Rate-Limit) – bitte kurz warten und erneut versuchen");
     }
     return data.articles || [];
   }
