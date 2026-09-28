@@ -1,7 +1,8 @@
 # Aktien-News
 
-Aktie oder Ticker eingeben (z. B. „Tesla“, „SAP“, „NVDA“) und die wichtigsten aktuellen
-Nachrichten dazu sehen – Meldungen von Top-Medien zuerst.
+Startseite **NEWS Heute** mit den wichtigsten Wirtschaftsnachrichten des Tages (Deutschland und
+international). Außerdem: Aktie oder Ticker eingeben (z. B. „Tesla“, „SAP“, „NVDA“) und die
+wichtigsten aktuellen Nachrichten dazu sehen – Meldungen von Top-Medien zuerst.
 
 Live: https://vhaasis.github.io/rechner-/
 
@@ -12,8 +13,11 @@ kein Backend. Suchen lassen sich per Link teilen, z. B. `?q=SAP&zeit=1w`.
 
 ## Funktionsweise
 
-- **Gelistete Aktien** (rund 75 US- und DAX-Werte in `stocks.js`): Der Workflow
-  `.github/workflows/update-news.yml` holt alle 2 Stunden die Google-News-Schlagzeilen
+- **NEWS Heute**: Der Workflow `.github/workflows/update-news.yml` holt stündlich die
+  Google-News-Rubrik „Wirtschaft“ (deutsch + englisch) als `heute.json`. Die Startseite zeigt die
+  Meldungen der letzten 24 Stunden (bei wenigen Meldungen 48 Stunden).
+- **Gelistete Aktien** (rund 75 US- und DAX-Werte in `stocks.js`): Derselbe Workflow holt die
+  Google-News-Schlagzeilen
   (deutsch + englisch, letzte 30 Tage) mit `scripts/fetch-news.mjs` und legt sie als
   `<TICKER>.json` auf den Branch `news-data`. Die Seite lädt diese Datei über
   raw.githubusercontent.com – ohne Rate-Limit und ohne API-Schlüssel.

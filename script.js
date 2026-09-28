@@ -44,7 +44,16 @@
   const input = $("stockInput");
   const suggestionsEl = $("suggestions");
   const quickpicksEl = $("quickpicks");
-  const introEl = $("intro");
+  const todayEl = $("today");
+  const todayDate = $("todayDate");
+  const todayMeta = $("todayMeta");
+  const segRegion = $("segRegion");
+  const todayNotice = $("todayNotice");
+  const todayNoticeText = $("todayNoticeText");
+  const todayNoticeAction = $("todayNoticeAction");
+  const todaySkeleton = $("todaySkeleton");
+  const todayLead = $("todayLead");
+  const todayList = $("todayList");
   const resultsHead = $("resultsHead");
   const resultsTicker = $("resultsTicker");
   const resultsTitle = $("resultsTitle");
@@ -74,6 +83,7 @@
 
   const dateFormatter = new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeStyle: "short" });
   const shortDateFormatter = new Intl.DateTimeFormat("de-DE", { day: "numeric", month: "short" });
+  const longDateFormatter = new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const relFormatter = new Intl.RelativeTimeFormat("de", { numeric: "auto" });
 
   function quote(text) {
@@ -360,7 +370,7 @@
     return node;
   }
 
-  function buildMeta(a) {
+  function buildMeta(a, showTop) {
     const meta = el("div", "meta");
     meta.appendChild(el("span", "meta-source", a.source || "unbekannte Quelle"));
     if (a.date) {
@@ -375,7 +385,7 @@
       lang.title = "Sprache";
       meta.appendChild(lang);
     }
-    if (a.top && state.source !== "top") meta.appendChild(el("span", "meta-top", "Top-Medium"));
+    if (a.top && showTop) meta.appendChild(el("span", "meta-top", "Top-Medium"));
     return meta;
   }
 
@@ -398,7 +408,7 @@
     return link;
   }
 
-  function renderLead(a) {
+  function renderLead(a, eyebrow, showTop) {
     const article = el("article", "lead");
     const link = newsLink("lead-link", a);
     if (a.image) {
@@ -412,19 +422,19 @@
       link.classList.add("no-media");
     }
     const body = el("div", "lead-body");
-    body.appendChild(el("span", "eyebrow", state.sort === "neu" ? "Neueste Meldung" : "Top-Meldung"));
+    body.appendChild(el("span", "eyebrow", eyebrow));
     body.appendChild(el("h2", "lead-title", a.title));
-    body.appendChild(buildMeta(a));
+    body.appendChild(buildMeta(a, showTop));
     link.appendChild(body);
     article.appendChild(link);
     return article;
   }
 
-  function renderStory(a) {
+  function renderStory(a, showTop) {
     const li = el("li", "story");
     const link = newsLink("story-link", a);
     const text = el("div", "story-text");
-    text.appendChild(buildMeta(a));
+    text.appendChild(buildMeta(a, showTop));
     text.appendChild(el("h3", "story-title", a.title));
     link.appendChild(text);
     if (a.image) link.appendChild(buildImage(a.image, "story-thumb", (e) => e.target.remove()));
@@ -454,9 +464,10 @@
     }
     hideNotice();
 
-    leadEl.appendChild(renderLead(list[0]));
+    const showTop = state.source !== "top";
+    leadEl.appendChild(renderLead(list[0], state.sort === "neu" ? "Neueste Meldung" : "Top-Meldung", showTop));
     const fragment = document.createDocumentFragment();
-    list.slice(1).forEach((a) => fragment.appendChild(renderStory(a)));
+    list.slice(1).forEach((a) => fragment.appendChild(renderStory(a, showTop)));
     listEl.appendChild(fragment);
   }
 
@@ -475,7 +486,7 @@
   }
 
   function showHeader(target) {
-    introEl.hidden = true;
+    todayEl.hidden = true;
     resultsHead.hidden = false;
     toolbar.hidden = false;
     resultsTitle.textContent = target.label;
@@ -709,6 +720,97 @@
     input.setAttribute("aria-activedescendant", "sugg-" + activeSuggestion);
   }
 
+  // ---------- Startseite: NEWS Heute ----------
+
+  const today = { items: [], updated: null, region: "alle" };
+  const TODAY_MAX = 21;
+
+  function showTodayNotice(message, kind, actionLabel, onAction) {
+    todayNotice.hidden = false;
+    todayNotice.className = "notice" + (kind === "error" ? " is-error" : kind === "warn" ? " is-warn" : "");
+    todayNoticeText.textContent = message;
+    todayNoticeAction.hidden = !actionLabel;
+    todayNoticeAction.textContent = actionLabel || "";
+    todayNoticeAction.onclick = onAction || null;
+  }
+
+  function todaySelection() {
+    const list = today.region === "alle" ? today.items : today.items.filter((a) => a.lang === today.region);
+    const now = Date.now();
+    const within = (hours) => list.filter((a) => a.date && now - a.date.getTime() <= hours * 3600000);
+    let hours = 24;
+    let picked = within(24);
+    if (picked.length < 6) {
+      const wider = within(48);
+      if (wider.length > picked.length) {
+        hours = 48;
+        picked = wider;
+      }
+    }
+    return { hours, items: picked.slice(0, TODAY_MAX) };
+  }
+
+  function renderToday() {
+    todayLead.innerHTML = "";
+    todayList.innerHTML = "";
+    segRegion.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.value === today.region)));
+
+    const { hours, items } = todaySelection();
+    const parts = [];
+    parts.push(items.length ? items.length + (items.length === 1 ? " Meldung" : " Meldungen") : "Keine Meldungen");
+    parts.push("letzte " + hours + " Stunden");
+    if (today.updated) parts.push("aktualisiert " + relativeTime(today.updated));
+    todayMeta.textContent = parts.join(" · ");
+
+    if (items.length === 0) {
+      showTodayNotice("Für diese Auswahl gibt es gerade keine aktuellen Meldungen.", "warn");
+      return;
+    }
+    todayNotice.hidden = true;
+    todayLead.appendChild(renderLead(items[0], "Top-Meldung des Tages", false));
+    const fragment = document.createDocumentFragment();
+    items.slice(1).forEach((a) => fragment.appendChild(renderStory(a, false)));
+    todayList.appendChild(fragment);
+  }
+
+  async function loadToday() {
+    todayDate.textContent = longDateFormatter.format(new Date());
+    todayNotice.hidden = true;
+    todaySkeleton.hidden = false;
+    todayMeta.textContent = "Lade die Schlagzeilen des Tages …";
+
+    let data = readCache("today");
+    if (!data) {
+      try {
+        const res = await fetch(DATA_BASE + "heute.json");
+        if (res.ok) data = await res.json();
+      } catch (e) {
+        data = null;
+      }
+      if (data && Array.isArray(data.items)) writeCache("today", data);
+    }
+    todaySkeleton.hidden = true;
+
+    if (!data || !Array.isArray(data.items)) {
+      todayMeta.textContent = "";
+      showTodayNotice(
+        navigator.onLine === false
+          ? "Keine Internetverbindung."
+          : "Die Schlagzeilen des Tages konnten gerade nicht geladen werden.",
+        "error", "Erneut versuchen", loadToday
+      );
+      return;
+    }
+    today.items = prepareFeed(data.items);
+    today.updated = parseDate(data.updated);
+    renderToday();
+  }
+
+  bindSegment(segRegion, (value) => {
+    today.region = value;
+    if (today.items.length) renderToday();
+  });
+
   // ---------- Initialisierung ----------
 
   function buildQuickPicks() {
@@ -779,4 +881,5 @@
 
   const initial = (params.get("q") || "").trim();
   if (initial) searchFromInput(initial);
+  else loadToday();
 })();

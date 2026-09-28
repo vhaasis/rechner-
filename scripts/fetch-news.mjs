@@ -14,6 +14,9 @@ const EDITIONS = [
   { lang: "EN", hl: "en-US", gl: "US", ceid: "US:en", suffix: "stock" }
 ];
 
+const BUSINESS_TOPIC = "https://news.google.com/rss/headlines/section/topic/BUSINESS";
+const TODAY_PER_EDITION = 40;
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function loadStocks() {
@@ -50,7 +53,9 @@ export function parseRss(xml, lang) {
     const source = src ? decode(src[2]) : "";
     const sourceUrl = src ? decode(src[1]) : "";
     let title = tag("title");
-    if (source && title.endsWith(" - " + source)) title = title.slice(0, -(source.length + 3));
+    while (source && title.toLowerCase().endsWith(" - " + source.toLowerCase())) {
+      title = title.slice(0, -(source.length + 3)).trim();
+    }
     const link = tag("link");
     const date = new Date(tag("pubDate"));
     if (!title || !/^https?:\/\//.test(link) || isNaN(date.getTime())) continue;
@@ -59,16 +64,39 @@ export function parseRss(xml, lang) {
   return items;
 }
 
-async function fetchEdition(stock, ed) {
-  const q = `${stock.query} ${ed.suffix} when:30d`;
-  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=${ed.hl}&gl=${ed.gl}&ceid=${ed.ceid}`;
+async function fetchRss(url, lang) {
   const res = await fetch(url, {
     headers: { "User-Agent": "Mozilla/5.0 (compatible; aktien-news-bot/1.0; +https://github.com/vhaasis/rechner-)" }
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const xml = await res.text();
   if (!xml.includes("<rss")) throw new Error("keine RSS-Antwort");
-  return parseRss(xml, ed.lang).slice(0, PER_EDITION);
+  return parseRss(xml, lang);
+}
+
+async function fetchEdition(stock, ed) {
+  const q = `${stock.query} ${ed.suffix} when:30d`;
+  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=${ed.hl}&gl=${ed.gl}&ceid=${ed.ceid}`;
+  return (await fetchRss(url, ed.lang)).slice(0, PER_EDITION);
+}
+
+// Wirtschafts-Schlagzeilen des Tages (Google-News-Rubrik „Wirtschaft“ bzw. „Business“).
+async function fetchToday(updated) {
+  const lists = [];
+  for (const ed of EDITIONS) {
+    try {
+      const url = `${BUSINESS_TOPIC}?hl=${ed.hl}&gl=${ed.gl}&ceid=${ed.ceid}`;
+      lists.push((await fetchRss(url, ed.lang)).slice(0, TODAY_PER_EDITION));
+    } catch (e) {
+      console.warn(`Tagesnachrichten ${ed.lang}: ${e.message}`);
+    }
+    await sleep(DELAY_MS);
+  }
+  const items = merge(lists);
+  if (items.length === 0) return false;
+  await writeFile(path.join(OUT_DIR, "heute.json"), JSON.stringify({ updated, items }));
+  console.log(`Tagesnachrichten: ${items.length} Meldungen`);
+  return true;
 }
 
 function merge(lists) {
@@ -95,6 +123,9 @@ async function main() {
   let ok = 0;
   const failed = [];
 
+  const todayOk = await fetchToday(updated);
+  if (!todayOk) failed.push("heute");
+
   for (const stock of stocks) {
     const lists = [];
     for (const ed of EDITIONS) {
@@ -118,7 +149,7 @@ async function main() {
 
   await writeFile(path.join(OUT_DIR, "status.json"), JSON.stringify({ updated, ok, failed }, null, 2));
   console.log(`Fertig: ${ok} von ${stocks.length} Aktien aktualisiert${failed.length ? `, ohne Treffer: ${failed.join(", ")}` : ""}`);
-  if (ok === 0) process.exit(1);
+  if (ok === 0 && !todayOk) process.exit(1);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

@@ -54,14 +54,36 @@
 
   <section id="results" class="results" aria-label="Nachrichten">
 
-    <div id="intro" class="intro">
-      <h1 class="intro-title">Was bewegt deine Aktie?</h1>
-      <p class="intro-text">Gib einen Firmennamen oder ein Tickersymbol ein. Du siehst die relevantesten Schlagzeilen auf Deutsch und Englisch – Meldungen von Reuters, Bloomberg, Handelsblatt &amp; Co. stehen oben.</p>
-      <dl class="facts">
-        <div><dt>Quellen</dt><dd>Google News, für rund 75 US- und DAX-Werte alle 2 Stunden aktualisiert</dd></div>
-        <div><dt>Weitere Firmen</dt><dd>Live-Suche über die GDELT-Nachrichtendatenbank</dd></div>
-        <div><dt>Kosten</dt><dd>Kostenlos, ohne Anmeldung und ohne Tracking</dd></div>
-      </dl>
+    <div id="today" class="today">
+      <header class="today-head">
+        <div class="today-dateline">
+          <span id="todayDate"></span>
+          <span class="today-section">Wirtschaft &amp; Börse</span>
+        </div>
+        <h1 class="today-title"><span class="today-title-news">NEWS</span> <span class="today-title-day">Heute</span></h1>
+        <div class="today-bar">
+          <p id="todayMeta" class="results-meta">Lade die Schlagzeilen des Tages …</p>
+          <div class="seg" id="segRegion" role="group" aria-label="Region">
+            <button type="button" data-value="alle" aria-pressed="true">Alle</button>
+            <button type="button" data-value="DE" aria-pressed="false">Deutschland</button>
+            <button type="button" data-value="EN" aria-pressed="false">International</button>
+          </div>
+        </div>
+      </header>
+
+      <div id="todayNotice" class="notice" role="status" hidden>
+        <span id="todayNoticeText" class="notice-text"></span>
+        <button type="button" id="todayNoticeAction" class="notice-action" hidden></button>
+      </div>
+
+      <div id="todaySkeleton" class="skeleton" aria-hidden="true">
+        <div class="sk-row"><div class="sk-line sk-short"></div><div class="sk-line"></div><div class="sk-line sk-mid"></div></div>
+        <div class="sk-row"><div class="sk-line sk-short"></div><div class="sk-line"></div><div class="sk-line sk-mid"></div></div>
+        <div class="sk-row"><div class="sk-line sk-short"></div><div class="sk-line"></div><div class="sk-line sk-mid"></div></div>
+      </div>
+
+      <div id="todayLead"></div>
+      <ol id="todayList" class="news-list today-list"></ol>
     </div>
 
     <div id="resultsHead" class="results-head" hidden>

@@ -332,16 +332,8 @@ a { color: inherit; }
 
 .pick[aria-pressed="true"] { border-color: var(--ink); color: var(--ink); }
 
-/* Intro */
-
 .results { padding-block: 28px 16px; }
 
-.intro {
-  border-top: 1px solid var(--line);
-  padding-top: 32px;
-}
-
-.intro-title,
 .results-title {
   font-family: var(--font-display);
   font-weight: 600;
@@ -351,34 +343,55 @@ a { color: inherit; }
   margin: 0;
 }
 
-.intro-title { font-size: clamp(1.75rem, 4vw, 2.25rem); }
+/* NEWS Heute */
 
-.intro-text {
-  max-width: 62ch;
-  color: var(--ink-2);
-  font-size: 1.0625rem;
-  margin: 12px 0 28px;
+.today-head {
+  border-top: 3px solid var(--ink);
+  padding-top: 12px;
 }
 
-.facts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  margin: 0;
-  padding-top: 20px;
-  border-top: 1px solid var(--line);
-}
-
-.facts dt {
+.today-dateline {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--muted);
-  margin-bottom: 4px;
 }
 
-.facts dd { margin: 0; color: var(--ink-2); font-size: 0.9375rem; }
+.today-title {
+  margin: 14px 0 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2.75rem, 9vw, 4.5rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.today-title-news { letter-spacing: 0.01em; }
+.today-title-day { color: var(--accent); }
+
+.today-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding-block: 12px;
+  border-block: 1px solid var(--line);
+}
+
+.today-bar .results-meta { margin: 0; }
+
+.today-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 36px;
+}
 
 /* Results header */
 
@@ -709,6 +722,8 @@ a { color: inherit; }
   .story-link { gap: 14px; }
   .story-title { font-size: 1.0625rem; }
   .story-thumb { width: 84px; height: 60px; }
+  .today-list { grid-template-columns: minmax(0, 1fr); }
+  .today-bar .seg { width: 100%; }
 }
 
 @media (hover: none) {
