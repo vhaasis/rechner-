@@ -1,0 +1,11 @@
+name: Kursquellen testen
+on:
+  push:
+    paths: [probe/**, .github/workflows/probe.yml]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash probe/probe.sh
