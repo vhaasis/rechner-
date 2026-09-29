@@ -5,7 +5,19 @@ on:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - run: bash probe/probe.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/fetch-quotes.mjs out
+      - if: always()
+        run: |
+          node -e '
+            const j = JSON.parse(require("fs").readFileSync("out/quotes.json", "utf8"));
+            console.log("ERGEBNIS Kurse:", Object.keys(j.quotes).length);
+            for (const t of ["TSLA","NVDA","SAP","VOW3","EUNL","DAXESG","FTSEAC","STOXX600","BTC","ETH","DOGE","CCJ","BRK.B"]) {
+              const x = j.quotes[t];
+              console.log("ERGEBNIS", t.padEnd(9), x ? [x.symbol, x.price, x.currency, "Vortag", x.prevClose, x.prevClose ? ((x.price/x.prevClose-1)*100).toFixed(2)+" %" : "-", x.time].join(" | ") : "FEHLT");
+            }'

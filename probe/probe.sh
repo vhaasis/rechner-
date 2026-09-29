@@ -20,3 +20,4 @@ t "Binance BTCEUR" "https://api.binance.com/api/v3/ticker/24hr?symbol=BTCEUR"
 t "Kraken XBTEUR" "https://api.kraken.com/0/public/Ticker?pair=XBTEUR"
 t "Twelve Data (ohne Key)" "https://api.twelvedata.com/quote?symbol=AAPL"
 t "Finnhub (ohne Key)" "https://finnhub.io/api/v1/quote?symbol=AAPL"
+# 1790705764

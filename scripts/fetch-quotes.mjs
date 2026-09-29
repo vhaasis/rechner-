@@ -5,10 +5,14 @@ import { runInNewContext } from "node:vm";
 import path from "node:path";
 
 const OUT_DIR = process.argv[2] || "out";
-const CONCURRENCY = 4;
+// Yahoo drosselt Abfragen von Cloud-Servern schnell (HTTP 429): einzeln abfragen und bei 429 bremsen.
+const MIN_PACE_MS = 700;
+const MAX_PACE_MS = 4000;
+const MAX_CONSECUTIVE_FAILURES = 8;
+let pace = MIN_PACE_MS;
 const KEEP_OLD_MS = 24 * 3600 * 1000;
 const HEADERS = {
-  "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
   Accept: "application/json,text/plain,*/*"
 };
 
@@ -46,19 +50,25 @@ export function parseChart(json) {
   };
 }
 
+let requestCount = 0;
+
 async function getJson(hosts, pathAndQuery) {
   let lastError;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const host = hosts[attempt % hosts.length];
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const host = hosts[requestCount++ % hosts.length];
     try {
       const res = await fetch(`https://${host}${pathAndQuery}`, { headers: HEADERS });
-      if (res.ok) return await res.json();
+      if (res.ok) {
+        pace = Math.max(MIN_PACE_MS, pace * 0.9);
+        return await res.json();
+      }
       lastError = new Error(`HTTP ${res.status}`);
       if (res.status === 404) break;
+      if (res.status === 429) pace = Math.min(MAX_PACE_MS, pace * 1.6);
     } catch (e) {
       lastError = e;
     }
-    await sleep(2500);
+    await sleep(5000 * (attempt + 1));
   }
   throw lastError;
 }
@@ -91,29 +101,33 @@ async function main() {
   const previous = await readPrevious();
   const quotes = {};
   const failed = [];
-  let index = 0;
+  let consecutiveFailures = 0;
 
-  async function worker() {
-    while (index < entries.length) {
-      const { ticker, symbol: raw } = entries[index++];
-      try {
-        let symbol = raw;
-        if (raw.startsWith("isin:")) {
-          symbol = await resolveIsin(raw.slice(5));
-          if (!symbol) throw new Error(`ISIN ${raw.slice(5)} nicht gefunden`);
-          console.log(`${ticker}: ${raw} -> ${symbol}`);
-        }
-        const q = await fetchQuote(symbol);
-        if (!q) throw new Error("keine Kursdaten");
-        quotes[ticker] = { symbol, ...q };
-      } catch (e) {
-        failed.push(ticker);
-        console.warn(`${ticker} (${raw}): ${e.message}`);
-      }
-      await sleep(150);
+  for (const { ticker, symbol: raw } of entries) {
+    if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+      failed.push(ticker);
+      continue;
     }
+    try {
+      let symbol = raw;
+      if (raw.startsWith("isin:")) {
+        symbol = await resolveIsin(raw.slice(5));
+        if (!symbol) throw new Error(`ISIN ${raw.slice(5)} nicht gefunden`);
+        console.log(`${ticker}: ${raw} -> ${symbol}`);
+        await sleep(pace);
+      }
+      const q = await fetchQuote(symbol);
+      if (!q) throw new Error("keine Kursdaten");
+      quotes[ticker] = { symbol, ...q };
+      consecutiveFailures = 0;
+    } catch (e) {
+      failed.push(ticker);
+      consecutiveFailures++;
+      console.warn(`${ticker} (${raw}): ${e.message}`);
+      if (consecutiveFailures === MAX_CONSECUTIVE_FAILURES) console.warn("Zu viele Fehler in Folge – breche ab, behalte alte Kurse.");
+    }
+    await sleep(pace);
   }
-  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 
   // Kurzzeitig fehlgeschlagene Abrufe behalten ihren letzten Kurs (max. 24 Stunden alt).
   let kept = 0;
