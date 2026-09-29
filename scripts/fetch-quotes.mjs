@@ -39,8 +39,13 @@ export function parseChart(json) {
   });
   const price = Number.isFinite(meta.regularMarketPrice) ? meta.regularMarketPrice : bars.at(-1)?.c;
   if (!Number.isFinite(price) || price <= 0) return null;
-  // Die letzte Kerze ist der aktuelle (oder letzte) Handelstag, die davor der Vortag.
-  const prevClose = bars.length >= 2 ? bars.at(-2).c : meta.previousClose ?? null;
+  // Vortagesschluss: Ist die letzte Kerze der Handelstag des Kurses, ist es die vorletzte Kerze.
+  // Fehlt die Kerze des aktuellen Tages (z. B. kurz nach Handelsbeginn), ist es die letzte.
+  const offset = Number.isFinite(meta.gmtoffset) ? meta.gmtoffset : 0;
+  const dayOf = (t) => Math.floor((t + offset) / 86400);
+  const lastIsToday = !Number.isFinite(meta.regularMarketTime) || !bars.length || dayOf(bars.at(-1).t) >= dayOf(meta.regularMarketTime);
+  const prevBar = lastIsToday ? bars.at(-2) : bars.at(-1);
+  const prevClose = prevBar ? prevBar.c : meta.previousClose ?? null;
   const time = Number.isFinite(meta.regularMarketTime) ? new Date(meta.regularMarketTime * 1000).toISOString() : null;
   return {
     price,
