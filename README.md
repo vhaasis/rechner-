@@ -22,6 +22,11 @@ kein Backend. Suchen lassen sich per Link teilen, z. B. `?q=SAP&zeit=1w`.
   `<TICKER>.json` auf den Branch `news-data`. Die Seite lädt diese Datei über
   raw.githubusercontent.com – ohne Rate-Limit und ohne API-Schlüssel.
   Zeitraum, Sortierung und Quellenfilter laufen danach lokal im Browser.
+- **Kurse**: `scripts/fetch-quotes.mjs` holt Kurs und Vortagesschlusskurs bei Yahoo Finance
+  (inoffizielle Chart-Schnittstelle) und legt sie als `quotes.json` ab – alle 15 Minuten an
+  Werktagen. Die Zuordnung Ticker → Yahoo-Symbol steht in `stocks.js` (`QUOTE_SYMBOLS`). Deutsche
+  Werte und ETFs erscheinen in Euro (Xetra), US-Werte in Dollar, Krypto in Euro. Die Tagesveränderung
+  ist Kurs minus Vortagesschluss. Schlägt ein Abruf fehl, bleibt der letzte Kurs bis 24 Stunden stehen.
 - **Andere Firmen**: Live-Suche über die
   [GDELT DOC 2.0 API](https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/). GDELT erlaubt
   nur eine Anfrage alle 5 Sekunden pro IP; die Seite hält diesen Abstand ein und wiederholt
@@ -41,5 +46,6 @@ Keine Anlageberatung – reine Nachrichten-Recherche.
 - `stocks.js` – Aktienliste (Ticker, Name, Suchbegriffe), genutzt von Website und Workflow
 - `script.js` – Datenabruf, Filter, Rendering
 - `scripts/fetch-news.mjs` – News-Abruf für den Workflow
+- `scripts/fetch-quotes.mjs` – Kurs-Abruf für den Workflow
 - `fonts/` – selbst gehostete Schriften (Newsreader, IBM Plex Sans/Mono; SIL Open Font License),
   damit keine Verbindung zu Google Fonts nötig ist

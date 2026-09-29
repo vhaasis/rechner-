@@ -48,3 +48,18 @@ window.STOCKS = [
   ["ETH", "Ethereum", null, ["Ether"], "crypto"],
   ["DOGE", "Dogecoin", null, ["Doge"], "crypto"]
 ];
+
+// Kurs-Symbole bei Yahoo Finance. Nicht aufgeführte Ticker gelten als US-Symbol mit gleichem Namen.
+// "isin:XXX" wird beim Abruf über die Yahoo-Suche zu einem Xetra-Symbol aufgelöst.
+window.QUOTE_SYMBOLS = {
+  "BRK.B": "BRK-B",
+  SAP: "SAP.DE", SIE: "SIE.DE", ENR: "ENR.DE", ALV: "ALV.DE", DTE: "DTE.DE", DBK: "DBK.DE",
+  CBK: "CBK.DE", MUV2: "MUV2.DE", BAS: "BAS.DE", BAYN: "BAYN.DE", ADS: "ADS.DE", BMW: "BMW.DE",
+  MBG: "MBG.DE", VOW3: "VOW3.DE", P911: "P911.DE", RHM: "RHM.DE", IFX: "IFX.DE", AIR: "AIR.DE",
+  DHL: "DHL.DE", RWE: "RWE.DE", EOAN: "EOAN.DE", HNR1: "HNR1.DE", ZAL: "ZAL.DE", LIN: "LIN.DE",
+  MRK: "MRK.DE", HEN3: "HEN3.DE", BEI: "BEI.DE", DB1: "DB1.DE", CON: "CON.DE", SHL: "SHL.DE",
+  MTX: "MTX.DE", HEI: "HEI.DE", SY1: "SY1.DE", QIA: "QIA.DE", VNA: "VNA.DE", BNR: "BNR.DE",
+  SRT3: "SRT3.DE", FRE: "FRE.DE",
+  EUNL: "EUNL.DE", DAXESG: "isin:DE000A0Q4R69", FTSEAC: "isin:IE000VAHT5T0", STOXX600: "isin:LU0908500753",
+  BTC: "BTC-EUR", ETH: "ETH-EUR", DOGE: "DOGE-EUR"
+};

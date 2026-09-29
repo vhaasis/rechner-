@@ -3,12 +3,19 @@ name: News aktualisieren
 on:
   schedule:
     - cron: "17 * * * *"
+    - cron: "*/15 5-22 * * 1-5"
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "all = News und Kurse, quotes = nur Kurse"
+        type: choice
+        options: [all, quotes]
+        default: all
   push:
     branches: [main, claude/stock-news-website-s6ypt7]
     paths:
       - stocks.js
-      - scripts/fetch-news.mjs
+      - scripts/**
       - .github/workflows/update-news.yml
 
 permissions:
@@ -17,6 +24,9 @@ permissions:
 concurrency:
   group: update-news
   cancel-in-progress: false
+
+env:
+  MODE: ${{ github.event.schedule == '*/15 5-22 * * 1-5' && 'quotes' || github.event.inputs.mode || 'all' }}
 
 jobs:
   update:
@@ -35,7 +45,12 @@ jobs:
           rm -rf out/.git
 
       - name: News abrufen
+        if: env.MODE != 'quotes'
         run: node scripts/fetch-news.mjs out
+
+      - name: Kurse abrufen
+        continue-on-error: true
+        run: node scripts/fetch-quotes.mjs out
 
       - name: Auf news-data veröffentlichen
         env:
@@ -45,5 +60,5 @@ jobs:
           git init -q -b news-data
           git add -A
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-            commit -q -m "Nachrichten-Stand $(date -u +%Y-%m-%dT%H:%MZ)"
+            commit -q -m "Stand $(date -u +%Y-%m-%dT%H:%MZ) ($MODE)"
           git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" news-data

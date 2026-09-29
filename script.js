@@ -37,6 +37,8 @@
   const MIN_INTERVAL_MS = 5500;
   const RETRY_EXTRA_DELAY_MS = 7000;
   const CACHE_TTL_MS = 10 * 60 * 1000;
+  const QUOTES_TTL_MS = 4 * 60 * 1000;
+  const QUOTES_REFRESH_MS = 5 * 60 * 1000;
   const MAX_RECORDS = 100;
 
   const $ = (id) => document.getElementById(id);
@@ -58,6 +60,7 @@
   const resultsTicker = $("resultsTicker");
   const resultsTitle = $("resultsTitle");
   const resultsMeta = $("resultsMeta");
+  const quoteEl = $("quote");
   const toolbar = $("toolbar");
   const segTime = $("segTime");
   const segSort = $("segSort");
@@ -138,12 +141,12 @@
 
   const memoryCache = new Map();
 
-  function readCache(key) {
+  function readCache(key, ttl = CACHE_TTL_MS) {
     let entry = memoryCache.get(key);
     if (!entry && session) {
       try { entry = JSON.parse(session.getItem(key) || "null"); } catch (e) { entry = null; }
     }
-    return entry && Date.now() - entry.ts < CACHE_TTL_MS ? entry.value : null;
+    return entry && Date.now() - entry.ts < ttl ? entry.value : null;
   }
 
   function writeCache(key, value) {
@@ -486,6 +489,7 @@
   }
 
   function showHeader(target) {
+    renderQuote(target);
     todayEl.hidden = true;
     resultsHead.hidden = false;
     toolbar.hidden = false;
@@ -720,6 +724,106 @@
     input.setAttribute("aria-activedescendant", "sugg-" + activeSuggestion);
   }
 
+  // ---------- Kurse ----------
+
+  state.quotes = {};
+  state.quotesUpdated = null;
+
+  const NBSP = " ";
+  const moneyFormatters = new Map();
+  const percentFormatter = new Intl.NumberFormat("de-DE", { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: "exceptZero" });
+  const timeFormatter = new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit" });
+  const weekdayFormatter = new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" });
+
+  function moneyFormatter(currency, digits, signed) {
+    const key = currency + digits + signed;
+    if (!moneyFormatters.has(key)) {
+      let fmt;
+      try {
+        fmt = new Intl.NumberFormat("de-DE", {
+          style: "currency", currency, minimumFractionDigits: digits, maximumFractionDigits: digits,
+          signDisplay: signed ? "exceptZero" : "auto"
+        });
+      } catch (e) {
+        fmt = new Intl.NumberFormat("de-DE", { minimumFractionDigits: digits, maximumFractionDigits: digits, signDisplay: signed ? "exceptZero" : "auto" });
+      }
+      moneyFormatters.set(key, fmt);
+    }
+    return moneyFormatters.get(key);
+  }
+
+  // Kleine Kurse (z. B. Dogecoin) brauchen mehr Nachkommastellen.
+  function priceDigits(price) {
+    return price >= 1 ? 2 : 4;
+  }
+
+  function quoteFor(target) {
+    const q = target && target.ticker ? state.quotes[target.ticker] : null;
+    return q && Number.isFinite(q.price) ? q : null;
+  }
+
+  function quoteChange(q) {
+    if (!Number.isFinite(q.prevClose) || q.prevClose <= 0) return null;
+    const abs = q.price - q.prevClose;
+    return { abs, pct: abs / q.prevClose, dir: Math.abs(abs) < 1e-12 ? 0 : abs > 0 ? 1 : -1 };
+  }
+
+  function quoteTimeLabel(q) {
+    const t = parseDate(q.time);
+    if (!t) return "";
+    const sameDay = t.toDateString() === new Date().toDateString();
+    return "Stand " + (sameDay ? "heute " + timeFormatter.format(t) : weekdayFormatter.format(t));
+  }
+
+  function renderQuote(target) {
+    const q = quoteFor(target);
+    quoteEl.hidden = !q;
+    if (!q) return;
+    const digits = priceDigits(q.price);
+    const change = quoteChange(q);
+    quoteEl.innerHTML = "";
+    quoteEl.appendChild(el("span", "quote-price", moneyFormatter(q.currency, digits, false).format(q.price)));
+    if (change) {
+      const chip = el("span", "quote-change " + (change.dir > 0 ? "is-up" : change.dir < 0 ? "is-down" : "is-flat"));
+      chip.appendChild(el("span", "quote-arrow", change.dir > 0 ? "▲" : change.dir < 0 ? "▼" : "■"));
+      chip.appendChild(el("span", "visually-hidden", change.dir > 0 ? "gestiegen um " : change.dir < 0 ? "gefallen um " : "unverändert "));
+      const text = moneyFormatter(q.currency, digits, true).format(change.abs) + NBSP + "(" + percentFormatter.format(change.pct) + ")";
+      chip.appendChild(el("span", "", text.replace(/-/g, "−")));
+      quoteEl.appendChild(chip);
+      quoteEl.appendChild(el("span", "quote-label", "zum Vortag"));
+    }
+    const when = quoteTimeLabel(q);
+    if (when) quoteEl.appendChild(el("span", "quote-time", when));
+  }
+
+  function updatePickChanges() {
+    quickpicksEl.querySelectorAll(".pick").forEach((btn) => {
+      const chg = btn.querySelector(".pick-chg");
+      const q = state.quotes[btn.dataset.ticker];
+      const change = q && Number.isFinite(q.price) ? quoteChange(q) : null;
+      chg.className = "pick-chg" + (change ? (change.dir > 0 ? " is-up" : change.dir < 0 ? " is-down" : "") : "");
+      chg.textContent = change ? percentFormatter.format(change.pct).replace("-", "−") : "";
+    });
+  }
+
+  async function loadQuotes() {
+    let data = readCache("quotes", QUOTES_TTL_MS);
+    if (!data) {
+      try {
+        const res = await fetch(DATA_BASE + "quotes.json");
+        if (res.ok) data = await res.json();
+      } catch (e) {
+        data = null;
+      }
+      if (data && data.quotes) writeCache("quotes", data);
+    }
+    if (!data || !data.quotes) return;
+    state.quotes = data.quotes;
+    state.quotesUpdated = parseDate(data.updated);
+    updatePickChanges();
+    renderQuote(state.target);
+  }
+
   // ---------- Startseite: NEWS Heute ----------
 
   const today = { items: [], updated: null, region: "alle" };
@@ -823,6 +927,7 @@
       btn.setAttribute("aria-pressed", "false");
       btn.appendChild(el("span", "pick-ticker", stock.ticker));
       btn.appendChild(el("span", "", stock.name));
+      btn.appendChild(el("span", "pick-chg"));
       btn.addEventListener("click", () => search(stockTarget(stock)));
       quickpicksEl.appendChild(btn);
     });
@@ -882,4 +987,6 @@
   const initial = (params.get("q") || "").trim();
   if (initial) searchFromInput(initial);
   else loadToday();
+  loadQuotes();
+  setInterval(loadQuotes, QUOTES_REFRESH_MS);
 })();

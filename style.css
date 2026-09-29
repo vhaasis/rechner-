@@ -24,6 +24,10 @@
   --active-ink: #FFFFFF;
   --danger: #B42318;
   --danger-soft: #FDEDEB;
+  --up: #0B7A3E;
+  --up-soft: #E4F5EA;
+  --down: #B42318;
+  --down-soft: #FDEDEB;
   --warn: #8A5A00;
   --warn-soft: #FFF5DA;
   --info: #334055;
@@ -60,6 +64,10 @@
     --active-ink: #0A0F16;
     --danger: #FF8B80;
     --danger-soft: rgba(255, 139, 128, 0.1);
+    --up: #4BD98C;
+    --up-soft: rgba(75, 217, 140, 0.12);
+    --down: #FF8B80;
+    --down-soft: rgba(255, 139, 128, 0.12);
     --warn: #F5C451;
     --warn-soft: rgba(245, 196, 81, 0.1);
     --info: #C2CBD7;
@@ -88,6 +96,10 @@
   --active-ink: #0A0F16;
   --danger: #FF8B80;
   --danger-soft: rgba(255, 139, 128, 0.1);
+  --up: #4BD98C;
+  --up-soft: rgba(75, 217, 140, 0.12);
+  --down: #FF8B80;
+  --down-soft: rgba(255, 139, 128, 0.12);
   --warn: #F5C451;
   --warn-soft: rgba(245, 196, 81, 0.1);
   --info: #C2CBD7;
@@ -425,6 +437,52 @@ a { color: inherit; }
   font-size: 0.9375rem;
   font-variant-numeric: tabular-nums;
 }
+
+/* Kurs */
+
+.quote {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.quote-price {
+  font-size: clamp(1.75rem, 5vw, 2.25rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.quote-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--radius-sm);
+  padding: 3px 9px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.quote-arrow { font-size: 0.6875rem; }
+
+.quote-change.is-up { color: var(--up); background: var(--up-soft); }
+.quote-change.is-down { color: var(--down); background: var(--down-soft); }
+.quote-change.is-flat { color: var(--ink-2); background: var(--info-soft); }
+
+.quote-label { color: var(--muted); font-size: 0.875rem; margin-left: -6px; }
+.quote-time { color: var(--muted); font-size: 0.8125rem; }
+
+.pick-chg {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.pick-chg.is-up { color: var(--up); }
+.pick-chg.is-down { color: var(--down); }
 
 /* Toolbar */
 
